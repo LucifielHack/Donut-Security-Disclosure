@@ -1,5 +1,5 @@
 <p align="right">
-  <a href="../../README.md">返回索引</a> |
+  <a href="../../README.md">返回目录</a> |
   <a href="../../en-US.md">English</a>
 </p>
 
@@ -21,8 +21,8 @@
 | 2012032 | AI Agent 配置与 Prompt 泄露 |
 | 2012034 | 跨用户限价单取消 |
 
-D0 阶段问题是否单独提交 CVE，将在正式发布前另行决定。
+D0 / OpenClaw 阶段问题是否单独提交 CVE，将在正式发布前另行决定。
 
----
+图片 15：CVE ticket 或申请记录
 
-[返回中文索引](../../README.md)
+（这里放 CVE 申请记录截图）
