@@ -1,372 +1,286 @@
-﻿# 一个融资 2200 万美元的加密项目，如何把用户钱包安全押在第三方策略上
+# Donut AI 安全研究技术报告 — 详细版
 
-**计划发布日期**：2026 年 6 月 9 日  
-**作者**：Lucifiel  
-**披露类型**：授权测试后的负责任披露窗口期届满公开  
-**当前版本**：公开发布修订草案，待 2026 年 6 月初复测后补充最终状态
+## 1. 研究概述
 
----
+| 项目 | 信息 |
+|------|------|
+| **研究员** | Lucifiel |
+| **目标** | Donut AI 生态系统（HIL 浏览器钱包 + D0/OpenClaw AI Agent 平台） |
+| **授权** | Ultimate Donut Bug Hunt 2.0 官方活动 |
+| **周期** | 阶段一 HIL（2026年3月）/ 阶段二 D0/OpenClaw（2026年5月） |
+| **成果** | 49 个漏洞 / 11 笔链上交易 / RCE / 反弹 Shell |
 
-## 摘要
-
-在 Donut Labs 官方发起的 **Ultimate Donut Bug Hunt 2.0** 活动期间，我对 Donut 的核心产品进行了安全测试，并在 2026 年 3 月 11 日线上会议中向 Donut 团队演示了资金安全攻击链和关键风险。
-
-本次研究最初覆盖 Donut Browser 浏览器钱包系统。后续，我又对 Donut 的 D0 / OpenClaw AI Agent 系统进行了独立安全研究。两阶段共整理出 **49 个安全问题**：Donut Browser 系统 35 个，D0/OpenClaw 系统 14 个。其中包括跨用户交易构建、服务端自动签名链路、CORS + credentials 风险、钱包 IDOR、D0 控制面凭据泄露、OpenClaw 配置修改导致的 RCE、容器内 Session Token 与环境信息泄露等问题。
-
-我在测试中完成了 **11 笔 Solana 主网链上交易**，均使用我自己的测试账户和自有资金；同时验证了 Donut 后端/API 层面对非当前用户钱包的交易请求缺乏有效隔离。实际跨用户资金盗取在最后阶段被第三方 Turnkey 策略拦截。换句话说，Donut 自身的系统边界没有守住，最后守住用户资金的是第三方密钥托管服务的策略，而不是 Donut 自己的后端权限模型。
-
-在 D0/OpenClaw 阶段，我验证了从前端环境接口获取 Gateway 连接信息，到 WebSocket 控制面认证，再到配置修改、脚本执行和容器内数据提取的完整链路。该阶段验证边界为我自己的 D0 租户 / Pod，不包含对第三方用户 Pod 的横向攻击。
-
-截至本文草案撰写时，3 月阶段核心问题曾在 2026 年 3 月 16 日复测仍未修复。最终发布前，我会在 2026 年 6 月初进行一次非破坏性复测，并在正式版本中补充截至披露日前的状态。
+两阶段研究覆盖了 Donut 的核心资产：第一阶段针对 HIL 浏览器钱包系统，发现了完整的跨用户资金盗取攻击链；第二阶段针对 D0/OpenClaw AI Agent 平台，实现了从 WebSocket 接入到容器内远程命令执行的全链路突破。
 
 ---
 
-## 先说明几条边界
+## 2. HIL 系统（Donut Browser 浏览器钱包）
 
-1. 本文披露的是安全研究事实、攻击链分析、时间线、项目方沟通记录和研究结论。
-2. 测试过程中没有转移任何第三方用户资金。
-3. 11 笔链上交易均由我的自有测试账户完成，用于证明 Donut 的交易构建与执行链路存在服务端安全边界缺陷。
-4. Donut Browser 阶段跨用户资金攻击链在 Donut 后端/API 层成立，但实际第三方资金转出被 Turnkey AUTH001 等策略拦截。
-5. D0/OpenClaw 阶段的 RCE 验证边界为我的自有租户 / Pod；我没有在未授权情况下横向攻击其他用户环境。
-6. 本文不会为 Donut 提供免费修复方案。Donut 在沟通窗口期内已经有充分机会建立正式合作、赏金或修复对接机制，但最终选择将该事件纳入普通社区奖励处理。
-7. 正式发布版本会移除仍可能造成直接滥用的有效凭据、Token、JWT、反弹 Shell 参数和一键化 exploit 代码；必要证据将以交易哈希、截图、录屏哈希、时间戳、脱敏片段或可验证索引形式呈现。
+### 2.1 系统架构
 
----
-
-## 时间线
-
-| 日期 | 事件 |
-|---|---|
-| 2026 年 3 月初 | Donut Labs 发起 Ultimate Donut Bug Hunt 2.0，我在该活动框架下参与测试 |
-| 2026 年 3 月 11 日 | 线上会议向 Donut 团队演示 Donut Browser 资金安全攻击链，说明漏洞等级、攻击路径和披露流程 |
-| 2026 年 3 月 11 日 | 会后向 Donut 提交脱敏报告、PPT 和 PoC 演示视频 |
-| 2026 年 3 月 11 日 | 会议中说明：7 天用于沟通修复和披露流程，30-90 天内根据修复情况协调披露，90 天后我保留独立披露权利；Donut 参会人员回复“OK，可以” |
-| 2026 年 3 月 16 日 | 复测确认 Donut Browser 核心问题仍未修复，并继续补充漏洞清单 |
-| 2026 年 3 月 18 日 | Donut 表示 bounty 将走常规社区奖励预算 |
-| 2026 年 3 月 18 日 | 我在群内正式同步：自 2026 年 3 月 11 日会议报告起进入负责任披露流程，计划于 2026 年 6 月 9 日公开披露 |
-| 2026 年 3 月 21 日 | 提交 9 个 CVE 申请 |
-| 2026 年 5 月 | 独立完成 D0/OpenClaw 阶段研究，验证控制面凭据泄露、配置修改、RCE 与容器数据提取链路 |
-| 2026 年 6 月初 | 计划进行最终非破坏性复测，并补充正式披露前状态 |
-| 2026 年 6 月 9 日 | 计划公开发布完整披露 |
-
----
-
-## 授权与沟通证据
-
-本次披露不是突然公开，也不是绕过沟通流程。核心证据如下：
-
-- 我在 2026 年 3 月 11 日前明确告知 Donut：发现了可能影响用户资金安全的 Critical 级别漏洞，需要与管理层和技术负责人线上沟通。
-- Donut 方面拉入技术负责人，并要求我会后分享脱敏报告。
-- 我在线上会议中演示了完整攻击链，并说明本次问题不是单点漏洞，而是交易链路和信任模型层面的系统级风险。
-- 会议中，我明确说明会按照安全行业常见披露流程处理：7 天沟通窗口、30-90 天修复协助与披露协调窗口、90 天后保留独立披露权。
-- Donut 参会人员对该流程表达了“OK，可以”。
-- 2026 年 3 月 18 日，我再次以书面方式确认披露时间线：基于 2026 年 3 月 11 日会议确认的 90 天窗口期，计划于 2026 年 6 月 9 日公开披露。
-
-这意味着 Donut 对漏洞性质、攻击链严重性、修复窗口和披露时间点均有明确知情机会。
-
----
-
-## 第一阶段：Donut Browser 浏览器钱包系统
-
-### 系统概览
-
-Donut Browser 系统的核心风险集中在“后端替用户构建并执行交易”这条链路上。该系统试图让 AI 或后端服务代替用户完成交易构建与执行，但后端没有建立足够严格的用户隔离、钱包归属校验和二次授权边界。
-
-简化架构如下：
-
-```text
-用户浏览器
-  -> beta.donutbrowser.ai
-  -> api-beta.donutbrowser.ai
-       -> action-mcp/query        构建交易
-       -> action-mcp/execution    执行交易 / 调用签名服务
-       -> wallet / portfolio      钱包与资产接口
-       -> Turnkey                 第三方密钥托管与策略拦截
+```
+用户浏览器 → beta.donutbrowser.ai → api-beta.donutbrowser.ai
+                                         ├── action-mcp/query（交易构建）
+                                         ├── action-mcp/execution（签名执行）
+                                         ├── wallet 管理接口（175+ 端点）
+                                         └── Turnkey 密钥托管
 ```
 
-### 核心结论
+HIL 系统是一个基于 AI Agent 的浏览器钱包，用户通过自然语言指令触发链上交易。后端通过 MCP（Model Context Protocol）协议与 AI 模型交互，再调用 Turnkey 进行密钥托管和交易签名。
 
-一句话概括：**Donut 后端允许攻击者构建并提交不属于当前会话用户的钱包交易，且执行链路会继续向后推进，直到第三方 Turnkey 策略在最后阶段拦截。**
+\[截图: S-H4 — CORS 响应头截图\]
 
-这不是一个普通的前端绕过问题。前端是否弹窗、用户是否点击确认，都不应该成为核心安全边界。真正的边界必须在后端：当前会话用户只能访问和操作属于自己的钱包、订单、资产与交易。
+### 2.2 核心攻击链
 
-但在我的测试中，Donut 的后端边界没有做到这一点。
+**步骤 1：资产侦察**
 
-### 攻击链概述
+wallet/portfolio、positions、history 等端点接受任意钱包地址作为参数，后端不验证请求者是否为该钱包的所有者。攻击者仅需知道目标钱包地址，即可查询其完整持仓、交易历史和资产余额。研究过程中发现持有 $12,000+ 和 $76,000+ 的真实用户钱包。
 
-```text
-1. 攻击者获得自己的正常登录态
-2. 通过 Donut API 查询或构造钱包 / 交易相关参数
-3. 向 action-mcp/query 提交包含目标钱包参数的交易构建请求
-4. 后端未在 API 层严格验证 from_wallet / wallet_id 是否属于当前会话用户
-5. 将 query 返回的交易上下文提交至 action-mcp/execution
-6. 后端继续调用后续签名 / 执行链路
-7. Turnkey 策略在最后阶段拦截非授权资金转出
+\[截图: S-H3 — 任意钱包 IDOR 查询\]
+
+**步骤 2：交易构建**
+
+action-mcp/query 端点接受 `userWallet` 参数用于指定交易发起方。后端未验证该参数是否属于当前认证会话的用户，导致攻击者可以为任意钱包构建 SWAP、TRANSFER、DeFi 操作等交易指令。
+
+\[截图: S-H1 — 跨用户交易构建\]
+
+**步骤 3：自动签名执行**
+
+action-mcp/execution 端点将构建好的交易直接转发给 Turnkey 进行签名和广播。整个流程无二次确认弹窗、无用户侧通知、无后端审计告警。交易从构建到提交签名，全程由服务端自动完成。
+
+\[截图: S-H2 — Turnkey AUTH001 拒绝\]
+
+**步骤 4：Turnkey 拦截**
+
+Turnkey 的 AUTH001 策略拒绝了跨用户签名请求——这是整条攻击链中唯一生效的安全控制。需要强调的是，这一防线属于第三方托管服务 Turnkey 的内置策略，并非 Donut 自身代码实现的安全机制。Donut 后端对跨用户交易的隔离能力为零。
+
+### 2.3 远程攻击放大
+
+CORS 配置允许 `*.donutbrowser.ai` 来源携带凭据（`Access-Control-Allow-Credentials: true`）。同时 DNS 通配符将所有子域名解析到同一服务器。攻击者可在 `evil.donutbrowser.ai` 托管恶意 JavaScript，用户访问后浏览器将自动附带认证 Cookie，攻击脚本可静默触发跨用户交易构建与执行。
+
+### 2.4 漏洞完整清单
+
+**Critical（6 个）**
+
+| # | 漏洞 | CWE | CVSS |
+|---|------|-----|------|
+| 1 | 后端服务端交易自动签名 | CWE-862 | 10.0 |
+| 2 | KAMINO DeFi 自动签名 | CWE-862 | 10.0 |
+| 3 | 跨用户交易构建无隔离 | CWE-862 | 9.8 |
+| 4 | 任意钱包 IDOR | CWE-639 | 9.0 |
+| 5 | CORS 通配子域 + credentials | CWE-942 | 8.0 |
+| 6 | MCP 认证绕过 | CWE-306 | 9.0 |
+
+**High（8 个）**
+
+| # | 漏洞 | CWE | CVSS |
+|---|------|-----|------|
+| 7 | Role 参数注入 | CWE-20 | 9.0 |
+| 8 | 无认证钱包创建 | CWE-306 | 8.5 |
+| 9 | Credits 绕过 | CWE-863 | 9.1 |
+| 10 | AI Agent 配置/Prompt 泄露 | CWE-200 | 9.5 |
+| 11 | 跨用户限价单取消 | CWE-639 | 8.0 |
+| 12 | wallet-service IDOR | CWE-639 | 7.5 |
+| 13 | Admin 计划信息泄露 | CWE-200 | 7.0 |
+| 14 | wallet-service export 无认证 | CWE-306 | 7.5 |
+
+**Medium / Low（21 个）**
+
+涵盖信息泄露、SQL 结构暴露、安全头缺失、Cookie 配置不当、错误堆栈泄露、API 枚举、缺少速率限制等问题。
+
+### 2.5 链上交易证据
+
+11 笔交易均已上链，可通过 Solscan 独立验证：
+
+| # | 交易签名（缩写） | 类型 | 验证链接 |
+|---|------------------|------|----------|
+| 1 | `5q1bzbQr...nskEH` | JUPITER_SWAP | [Solscan](https://solscan.io/tx/5q1bzbQr5TUWqW2TpweXaACkHv2WXEUHMVR2CZ6QMiQu6ajKeeK618qAW88bNfRo22LMmtuoDTkYeS2SwyxnskEH) |
+| 2 | `2FnWjBWA...3P1Gt` | JUPITER_SWAP | [Solscan](https://solscan.io/tx/2FnWjBWAPGeNt82mK7hUpx3bAxg8DY8NfVfq14vZimxx6CsLw6mEayvpFS5ZH6KkNWWMREkzz9FGqmnWizv3P1Gt) |
+| 3 | `5KqGwtXu...QT4F` | JUPITER_SWAP | [Solscan](https://solscan.io/tx/5KqGwtXuvT73Goc9j7ARgwVdMghHc9cq7zu8ztqpW3V6NJ2gWsYDZTNL9XinZnbVVWM7E4t2YM5HnqXoHNbzQT4F) |
+| 4 | `3C8nhdwq...UFQc` | JUPITER_SWAP | [Solscan](https://solscan.io/tx/3C8nhdwqdBf4UU4mKC9J8XXPGoGdeHpRma5WYYfdmq2CAdRCTeSWJmfn6tukD1YqExsJpGKumtdpUje9RhnwUFQc) |
+| 5 | `61tAkb1V...adLU` | WRAP_SOL | [Solscan](https://solscan.io/tx/61tAkb1VVFank6HMyWHBmNPUKJKrWSvWq68KkKzA51KWxy6G1G9WWm64uUCoJFP7xbNKndwPTVFP6wEMdAS9adLU) |
+| 6 | `54rsvZ41...ZJya` | SWAP 攻击链验证 | [Solscan](https://solscan.io/tx/54rsvZ41p2kGQNZWXyamfeJBNgQJE1uBn7XJHdV5bKAqr1jd8TGMubzaSwJEdiBWqeeXTZSTEqcAtZAocLhSZJya) |
+| 7 | `2WVuRuDk...JNHz` | TRANSFER | [Solscan](https://solscan.io/tx/2WVuRuDkG3aQUMryCGkPMWmMN29sXpAWcNB82uZSQrbkJpYb32oLH4z8yHzXjRPVPK9JNq15GVAA7McsK7H2JNHz) |
+| 8 | `5cj2Znjg...XYWu` | TRANSFER 跨用户 | [Solscan](https://solscan.io/tx/5cj2ZnjgDSBQxAm8t7V9Zkezneh6RpB4W1ogcbFT7YQQsdU5nSzRC99y9kPxZTHnEKLfFk7GTKJVZgJhF9QnXYWu) |
+| 9 | `3uhoD4gJ...y85` | TRANSFER | [Solscan](https://solscan.io/tx/3uhoD4gJTDcMdp1apLft5UsunGs6cg86pEHVEqHbyHRGDV6cgqyfFTd1eAMGkjg3cvNgbZwzesTzkhDrwUR16y85) |
+| 10 | `3sJBaiYQ...3pWz` | KAMINO_DEPOSIT | [Solscan](https://solscan.io/tx/3sJBaiYQpXpwrxeMwMrJvHiF91odpd7Lt9nvFhK8Jk8VGNqUPRkBWfdW61NfnSx5s52bYsmq1UsKWWQTZSya3pWz) |
+| 11 | `2LTT5Rt9...13Y5` | KAMINO_WITHDRAW | [Solscan](https://solscan.io/tx/2LTT5Rt9wmoXVro3GfUZxyceAUguTh6jjZ6ap6LttAtydaU6orr5hXCP6kYmxgiqMSNgRCko7N6LumGnnRSA13Y5) |
+
+\[截图: S-H5 — Solscan 交易页面\]
+
+### 2.6 复测结果（2026-03-16）
+
+| 状态 | 数量 | 说明 |
+|------|------|------|
+| **未修复** | 31 | 全部 Critical 和 High 漏洞均未修复 |
+| **已修复** | 4 | 仅低优先级 404 页面等边缘问题 |
+
+\[截图: S-H6 — 复测未修复证据\]
+
+---
+
+## 3. D0/OpenClaw 系统（AI Agent 平台）
+
+### 3.1 系统架构
+
+```
+用户 Telegram / Web
+    ↓
+D0 前端 (d0.donutbrowser.ai)
+    ↓
+Donut 后端 API
+    ↓  GET /d0/environment → 返回 Pod 连接信息
+OpenClaw Gateway (WebSocket)
+    ↓
+Claude AI 模型
+    ↓
+exec / 工具系统
 ```
 
-### 为什么这仍然是 Critical
+每用户分配一个独立 K8s Pod，Pod 内运行 OpenClaw 框架 + Claude Agent。用户通过 Telegram 或 Web 界面与 Agent 交互，Agent 可执行链上操作和系统命令。
 
-有人可能会说：“既然 Turnkey 拦截了，资金不是没有被盗吗？”
+### 3.2 核心攻击链
 
-这正是问题所在。
+**步骤 1：获取控制面凭据**
 
-Donut 自己的系统没有在应该拦截的位置拦截。一个涉及用户资金的平台，不应该把最后一道安全边界外包给第三方策略，更不应该让跨用户交易请求一路走到第三方签名策略才失败。
+`GET /v1/backend/d0/environment` 端点（需登录态）直接返回用户 Pod 的公网 IP、端口和 Gateway Token。所有建立 WebSocket 连接所需的信息均通过此接口暴露给前端。
 
-如果 Turnkey 策略配置出现任何松动、策略误配、业务例外、迁移缺陷或未来版本改动，Donut 后端缺失的用户隔离会立即变成真实资金损失。
+\[截图: S-D1 — /d0/environment 响应（脱敏 Token）\]
 
-这类问题的严重性不取决于“这一次是不是刚好被第三方拦住了”，而取决于 Donut 自身是否具备最基本的资产归属校验和交易授权边界。我的结论是：在测试时，它没有。
+**步骤 2：WebSocket 连接与认证**
 
-### Donut Browser 漏洞清单摘要
+使用获取的信息连接 `ws://{ip}:{port}`，服务端发送 `connect.challenge`，客户端请求 `operator.admin` 角色。认证过程无 IP 白名单、无来源校验、无速率限制，任何持有 Gateway Token 的客户端均可获得完整管理权限。
 
-| 编号 | 漏洞 | 严重性 |
-|---|---|---|
-| DB-1 | 服务端交易自动签名 / 执行链路缺失强授权边界 | Critical |
-| DB-2 | 跨用户交易构建，交易参数未绑定当前会话钱包归属 | Critical |
-| DB-3 | 任意钱包 / 资产相关接口 IDOR | Critical |
-| DB-4 | CORS 子域策略与 credentials 组合导致跨域攻击面扩大 | Critical |
-| DB-5 | MCP 相关接口认证与权限边界不足 | Critical |
-| DB-6 | Role 参数注入导致 AI / Agent 行为边界绕过 | High |
-| DB-7 | 无认证或弱认证钱包创建 | High |
-| DB-8 | Credits / 使用次数限制绕过 | High |
-| DB-9 | AI Agent 配置和 Prompt 泄露 | High |
-| DB-10 | 跨用户限价单取消 | High |
-| DB-11 至 DB-35 | 信息泄露、缺失速率限制、安全头缺失、错误信息暴露等问题 | Medium / Low |
+\[截图: S-D3 — WebSocket 认证成功\]
 
-正式版本会附上 CVE ticket、CWE、CVSS 评分与证据索引。CVSS 分值将在最终稿中统一，避免不同工程文件版本之间的历史评分差异。
+**步骤 3：配置读取**
 
-### 链上交易证据
+`config.get` 方法返回完整的服务端配置，包含内部服务地址、环境变量引用、Agent 行为配置、心跳机制参数等敏感信息。
 
-我使用自有测试账户完成了 11 笔 Solana 主网链上交易，用于证明 Donut 的后端交易构建与执行链路可以在用户无前端确认的情况下被推动。
+\[截图: S-D4 — config.get 响应（脱敏）\]
 
-正式版本将保留 Solscan 交易哈希与链接，并明确说明：
+**步骤 4：RCE — beforeRun 机制利用**
 
-- 所有交易均为研究员自有账户。
-- 未转移第三方用户资金。
-- 交易用于证明执行链路与用户感知之间存在断裂。
-- 跨用户资金转出链路在 Donut 后端/API 层通过，但被 Turnkey 策略在最后阶段拦截。
+这是攻击链的核心突破点：
 
----
+1. 通过 `agents.files.set` 将恶意 bash 脚本写入 `AGENTS.md`（白名单文件，不受路径限制）
+2. 通过 `config.patch` 修改 `heartbeat.beforeRun` 指向该文件
+3. heartbeat 机制每 30 分钟自动触发
+4. `beforeRun` 以纯 shell 进程执行，完全绕过 Claude AI 模型层的安全审查
 
-## 第二阶段：D0 / OpenClaw AI Agent 系统
+关键在于：`beforeRun` 是 OpenClaw 设计的合法功能，用于在每次心跳前执行维护脚本。但由于 WebSocket 接口允许任意修改该路径且不校验脚本内容，攻击者可将其劫持为任意命令执行入口。
 
-### 为什么 D0 也被纳入披露
+\[截图: S-D5 — 文件写入成功\]
+\[截图: S-D6 — config.patch 成功\]
 
-D0/OpenClaw 阶段是我在 2026 年 5 月后续独立完成的安全研究。它与 3 月 Donut Browser 阶段不同，不是 Donut 在 3 月会议后持续配合我开展的修复验证工作。
+**步骤 5：命令执行与数据提取**
 
-我选择将其纳入 2026 年 6 月 9 日披露，是因为：
+heartbeat 触发后，恶意脚本在容器内以 shell 权限执行：
 
-1. D0 属于 Donut 同一产品生态下的核心 AI Agent 系统。
-2. Donut Browser 阶段沟通已经表明 Donut 对系统级安全问题的处理不符合我对专项安全事件的最低预期。
-3. Donut 将 Critical 级攻击链纳入普通社区奖励路径处理，未建立清晰的专项赏金、修复对接或后续合作机制。
-4. 我已经在 3 月会议中明确说明，当时展示和提交的只是部分漏洞，不代表我掌握的全部问题。
-5. 安全研究不是免费的外包审计。我没有义务在缺乏尊重、缺乏明确合作框架、缺乏合理赏金机制的情况下继续为 Donut 提供免费深度支持。
+- 读取 `/run/secrets/session-token`（JWT，7天有效期）
+- 读取完整环境变量（含内部服务地址）
+- 枚举容器文件系统和网络配置
+- 反弹交互式 Shell 到攻击者 VPS
 
-因此，D0 阶段将作为 Donut 整体安全治理失败的后续证据纳入披露，而不是作为我继续免费协助 Donut 修复的材料。
+\[截图: S-D7 — 容器内 shell 输出\]
+\[截图: S-D9 — 反弹 Shell 连接成功\]
 
-### D0 架构风险概述
+### 3.3 容器安全评估
 
-D0 是 Donut 的 AI Agent 平台，基于 OpenClaw 运行。每个用户会被分配一个独立运行环境 / Pod，前端通过 WebSocket 与对应 Gateway 通信。
+| 检查项 | 结果 | 逃逸可能性 |
+|--------|------|------------|
+| CapEff | 全部为 0 | 无特权能力 |
+| K8s SA Token | 不存在 | 无法调用 K8s API |
+| /dev 设备 | 无宿主机设备 | 无法挂载宿主文件系统 |
+| root 权限 | 否（uid=10003） | 无法提权 |
+| 网络 | 容器网络 10.10.x.0/24 | 可扫描同网段其他 Pod |
 
-核心问题在于：连接控制面所需的关键信息被前端环境接口返回，包括公网入口、端口和 Gateway Token。攻击者只要拥有自己的正常 D0 登录态，就可以获取自己的控制面连接信息，并进一步调用 OpenClaw 控制面方法。
+**结论**：直接容器逃逸不可行，但容器内控制权限完整——可持久化后门、窃取凭据、横向探测内网。
 
-简化链路如下：
+### 3.4 D0 漏洞完整清单
 
-```text
-用户登录 D0
-  -> 调用环境接口获取 Gateway 连接信息
-  -> 连接 OpenClaw WebSocket Gateway
-  -> 以高权限角色完成认证
-  -> 读取 / 修改配置
-  -> 写入文件或修改 beforeRun
-  -> 等待 heartbeat 或触发执行路径
-  -> 在对应 Pod 内执行命令
-  -> 读取 Session Token / ENV / 内部服务地址等信息
-```
+| # | 漏洞名称 | 严重性 | CWE |
+|---|----------|--------|-----|
+| 1 | Gateway Token 前端泄露 | Critical | CWE-200 |
+| 2 | WebSocket 未认证管理接入 | Critical | CWE-306 |
+| 3 | beforeRun RCE | Critical | CWE-94 |
+| 4 | 容器内 Secret 读取 | Critical | CWE-522 |
+| 5 | 反弹 Shell | Critical | CWE-78 |
+| 6 | 配置任意读写 | High | CWE-732 |
+| 7 | Agent 文件任意写入 | High | CWE-434 |
+| 8 | 心跳持久化后门 | High | CWE-506 |
+| 9 | 环境变量泄露 | High | CWE-200 |
+| 10 | 内部服务地址暴露 | Medium | CWE-200 |
+| 11 | WebSocket 无速率限制 | Medium | CWE-770 |
+| 12 | JWT 长效期（7天） | Medium | CWE-613 |
+| 13 | 容器间网络未隔离 | Medium | CWE-284 |
+| 14 | ws:// 明文传输 | Low | CWE-319 |
 
-### D0 核心漏洞摘要
+### 3.5 攻防对抗记录
 
-| 编号 | 漏洞 | 严重性 |
-|---|---|---|
-| D0-1 | OpenClaw beforeRun / 配置机制导致 RCE | Critical |
-| D0-2 | 环境接口泄露 Gateway 连接信息与 Token | Critical |
-| D0-3 | WebSocket 控制面配置读取 | High |
-| D0-4 | 高权限 operator/admin 能力暴露或限制不足 | Critical |
-| D0-5 | Session Token 文件可由容器内进程读取 | High |
-| D0-6 | 容器环境变量泄露 | High |
-| D0-7 | 内部 ELB / 后端入口暴露 | Medium |
-| D0-8 | WebSocket Origin / 来源边界不足 | High |
-| D0-9 | Gateway Token 生命周期与轮换策略不足 | High |
-| D0-10 | agents.files.set 等文件写入能力过宽 | Critical |
-| D0-11 | config.patch 缺乏足够审计和变更保护 | Medium |
-| D0-12 | Pod 间网络隔离仍需进一步授权验证 | High |
-| D0-13 | heartbeat 脚本完整性校验不足 | High |
-| D0-14 | JWT 有效期与敏感凭据暴露风险 | Medium |
+以下攻击路径经实测验证为无效，记录于此以完整呈现安全边界：
 
-### D0 影响边界
+| 攻击路径 | 结果 | 防御机制 |
+|----------|------|----------|
+| sessions.send 命令注入 | 失败 | Claude AI 宪法级拒绝 |
+| AGENTS.md 注入 OVERRIDE 指令 | 失败 | 模型直接输出 "NO" |
+| cron agentTurn payload 注入 | 失败 | 模型识别为 prompt injection |
+| agents.files.get 路径穿越 | 失败 | 文件名白名单限制 |
+| browser.request 读取内部文件 | 失败 | browser control disabled |
+| AWS 元数据服务探测 | 失败 | 需经过模型层，被拒绝 |
+| secrets.resolve API | 未成功 | 参数格式未知 |
 
-D0 阶段已经验证：我可以在自己的 D0 租户 / Pod 内完成从控制面连接到命令执行、数据提取的完整链路。
-
-我没有在未授权情况下攻击其他用户 Pod，也没有进行超出授权边界的横向移动测试。现有证据足以证明 Donut 将控制面凭据、执行能力和敏感运行时信息暴露给了不该拥有这些能力的路径。
-
-正式发布版本会删除仍可能直接复用的 Token、JWT、IP、反弹 Shell 参数和一键化脚本，仅保留脱敏后的请求路径、风险解释、截图索引和证据哈希。
+**安全边界总结**：Claude 模型层的安全审查对直接命令注入有效，但 `beforeRun` 机制完全绕过了模型层——这是架构级设计缺陷，而非模型防护的失败。
 
 ---
 
-## 项目方回应
+## 4. CVE 申请状态
 
-### 赏金沟通
-
-在 2026 年 3 月 11 日会议后，Donut 运营私聊询问我对安全赏金的预期。
-
-我的回复很明确：金额不适合由研究员自行提出，因为这可能产生“威胁倾向”的误解；我建议 Donut 团队根据漏洞影响进行内部评估，并参考行业数据给出报价。
-
-随后，Donut 表示 bounty 会走社区相关预算。进一步追问后，Donut 明确：这是常规社区奖励；额外奖金也考虑了我此前提出的“安全研究原则和威胁倾向”，所以他们决定以“中立视角”来定义本次 bounty。
-
-这意味着：我为了避免被误解为威胁而没有自行报价，反而被 Donut 用作不做专项赏金评估的理由之一。
-
-### 为什么我认为这不是普通社区反馈
-
-这次提交不是“页面报错”“功能异常”或普通参数问题，而是：
-
-- 交易链路和信任模型层面的系统级风险；
-- 可以推动服务端交易构建和执行链路；
-- 涉及用户钱包、链上资金、AI Agent、后端控制面和容器运行环境；
-- 已通过链上交易、会议演示、PoC 视频和复测记录证明影响；
-- 包含多个 Critical 级别问题。
-
-如果这类问题最终仍被纳入普通社区预算处理，那么所谓 Bug Bounty 对安全研究员而言就失去了基本可信度。
-
-### 关于 $100
-
-根据现有沟通，Donut 最终给出的方向是常规社区奖励，每人约 $100。
-
-我不会把安全研究包装成慈善劳动。一个融资 2200 万美元、处理用户钱包和交易的 AI + Crypto 项目，面对系统级资金安全攻击链、多个 Critical 漏洞、链上交易证明和后续 D0 RCE 风险，如果只能以普通社区奖励来处理，那么我认为这个处理方式本身就是本文值得公开记录的一部分。
+| Ticket ID | 对应漏洞 | 状态 |
+|-----------|----------|------|
+| 2012016 | 后端服务端交易签名（action-mcp/execution 自动签名） | 审核中 |
+| 2012018 | CORS 通配子域（*.donutbrowser.ai + credentials） | 审核中 |
+| 2012020 | 任意钱包 IDOR（无权限校验访问他人钱包） | 审核中 |
+| 2012022 | Role 参数注入（权限提升） | 审核中 |
+| 2012024 | MCP 认证绕过 | 审核中 |
+| 2012026 | 无认证钱包创建 | 审核中 |
+| 2012030 | Credits 余额绕过 | 审核中 |
+| 2012032 | AI Agent 配置/Prompt 泄露 | 审核中 |
+| 2012034 | 跨用户限价单取消 | 审核中 |
+| D0-CVE-* | D0/OpenClaw 系列漏洞 | 待提交 |
 
 ---
 
-## 彩蛋：Donut 自己做出来的 AI，比 Donut 团队更明白这件事
+## 5. 复测计划
 
-在沟通受阻后，我曾与 Donut D0 平台中的 AI Agent 讨论该事件。这个 AI Agent 无法验证全部事实，但在基于我描述的前提下，它给出了比 Donut 团队更符合安全行业常识的判断：
+计划于 2026 年 6 月初进行非破坏性复测，重点确认：
 
-- Critical 级资金攻击链不应被当作普通社区反馈处理；
-- 研究员私下报告、演示 PoC、给予修复窗口，应该得到尊重；
-- 如果漏洞真实、提交完整、团队忽视，则研究员有权通过合法披露渠道进一步行动；
-- 如果漏洞仍未修复，应优先明确用户风险。
-
-这部分不是核心证据，只是一个讽刺性的旁证。真正的证据仍然是会议记录、群聊记录、链上交易、PoC 演示、CVE ticket 和复测结果。
-
-但我确实想说一句：Donut 做出来的 AI，都比 Donut 团队更明白什么叫负责任披露。
+- action-mcp 端点是否仍可跨用户构建交易
+- CORS 配置是否已收紧至精确域名匹配
+- `/d0/environment` 是否仍向前端返回 Gateway Token
+- OpenClaw 控制面 WebSocket 是否仍暴露在公网
+- `beforeRun` 机制是否已增加执行来源校验
 
 ---
 
-## CVE 申请状态
+## 6. 给用户的建议
 
-2026 年 3 月 21 日，我基于 Donut Browser 阶段问题提交了 9 个 CVE 申请。正式发布版本会列出 ticket ID、漏洞映射、CWE 和最终统一后的 CVSS 信息。
+如果你正在使用 Donut Browser 或 D0 平台：
 
-当前草案阶段的映射如下：
-
-| Ticket ID | 对应问题 |
-|---|---|
-| 2012016 | 服务端交易签名 / 执行链路缺失授权边界 |
-| 2012018 | CORS 子域策略与 credentials 组合风险 |
-| 2012020 | 钱包 / 资产接口 IDOR |
-| 2012022 | Role 参数注入 |
-| 2012024 | MCP 认证或权限边界不足 |
-| 2012026 | 弱认证 / 无认证钱包创建 |
-| 2012030 | Credits / 使用次数限制绕过 |
-| 2012032 | AI Agent 配置与 Prompt 泄露 |
-| 2012034 | 跨用户限价单取消 |
-
-D0 阶段问题是否单独提交 CVE，将在正式发布前另行决定。
+1. **转移高价值资产** — 将大额资产从 Donut 托管钱包转移至硬件钱包
+2. **撤销不必要的授权** — 检查并撤销 DeFi 协议的 Token Approval
+3. **不要点击任何 donutbrowser.ai 子域链接** — CORS 通配符意味着任意子域均可发起攻击
+4. **监控钱包活动** — 对托管钱包设置链上交易告警
+5. **限制 D0 Agent 权限** — 避免在 Agent 中配置大额交易权限
 
 ---
 
-## 用户建议
+## 7. 联系方式
 
-如果你正在使用 Donut Browser、Donut 钱包或 D0 平台，我建议：
-
-1. 不要在 Donut 相关钱包中存放大额资产。
-2. 检查并撤销不必要的 token allowance 和合约授权。
-3. 监控你的链上交易记录，发现异常后立即转移资产。
-4. 不要在 D0 / AI Agent 环境中处理敏感信息、私钥、助记词、交易所 API Key、内部文档或不可公开的商业数据。
-5. 在 Donut 公布清晰的安全整改、外部审计和复测报告前，将其视为高风险实验性产品。
+- **Twitter/X**: [@LucifielHack](https://x.com/LucifielHack)
+- **Email**: lucifiel99@gmail.com
+- **Website**: [lucifiel.com](https://lucifiel.com)
 
 ---
 
-## 对行业的意义
-
-### 1. AI + Crypto 的风险不是两个 buzzword 相加那么简单
-
-AI Agent 一旦接入钱包、交易、签名、策略执行和链上资产，它就不再是一个普通聊天机器人。它更接近一个带自动化能力的金融执行系统。
-
-这样的系统需要强制的后端权限模型、资产归属校验、最小权限、签名确认、审计日志、异常拦截和安全运营能力。否则，AI 只是让错误执行得更快。
-
-### 2. Bug Bounty 不能只在营销时存在
-
-项目方可以公开发起 Bug Hunt，吸引社区帮助测试。但当真正的 Critical 级问题出现时，如果仍然用普通社区奖励打发研究员，那么这不是 Bug Bounty，而是低成本外包安全劳动。
-
-### 3. “不给研究员报价”不等于“可以不评估价值”
-
-研究员不主动开价，是为了避免威胁化沟通；项目方不能把这种自我约束反过来当作压低赏金或不做专项评估的理由。
-
-### 4. 资金安全不能靠“刚好被第三方拦住”
-
-Turnkey 拦截了最后一步，这是好事。但对于 Donut 来说，这不是可以庆祝的安全成绩，而是应该羞愧的架构失败信号。
-
-真正的安全边界应该在 Donut 自己的后端权限模型中，而不是在第三方签名策略的最后一刻。
-
----
-
-## 证据索引（正式发布前补充）
-
-正式版本计划附上以下证据索引：
-
-| 类型 | 说明 | 发布方式 |
-|---|---|---|
-| 会议记录 | 2026 年 3 月 11 日线上会议转录 | 摘要 + 关键片段 |
-| 群聊记录 | Donut<>Kira 群内沟通、披露日期通知、赏金回应 | 脱敏截图 / 引文 |
-| 私聊记录 | 赏金询问、社区预算回应 | 脱敏截图 / 引文 |
-| PoC 演示视频 | Donut Browser 攻击链演示 | 文件哈希 + 关键截图 |
-| 链上交易 | 11 笔 Solana 主网交易 | Solscan 链接 |
-| CVE 申请 | 9 个 ticket ID | ticket 映射 |
-| 复测记录 | 2026 年 3 月 16 日复测、2026 年 6 月初计划复测 | 截图 / 时间戳 |
-| D0 证据 | 环境接口、控制面、RCE、容器信息 | 脱敏截图 / 哈希 |
-| Donut AI 彩蛋 | D0 AI Agent 对事件处理的评价 | 作为旁证展示 |
-
----
-
-## 法律与伦理声明
-
-1. Donut Browser 阶段测试发生在 Donut 官方 Bug Hunt 活动和后续线上沟通框架内。
-2. 我在 2026 年 3 月 11 日会议中向 Donut 团队说明了风险、流程和披露窗口。
-3. 我在 2026 年 3 月 18 日以书面方式明确通知 2026 年 6 月 9 日公开披露计划。
-4. 测试过程中未造成第三方用户资金损失。
-5. 本文不构成投资建议、法律意见或攻击指引。
-6. 本文记录的是我的安全研究过程、证据、判断和观点。
-
----
-
-## 关于作者
-
-**Lucifiel**
-
-信息安全从业者，长期关注 Web 应用安全、区块链安全、AI Agent 安全、逻辑漏洞和攻防体系建设。
-
-联系方式：
-
-- Twitter/X: @LucifielHack
-- Email: lucifiel99@gmail.com
-- Website: lucifiel.com
-
----
-
-## 待正式发布前补齐
-
-- [ ] 2026 年 6 月初非破坏性复测结果
-- [ ] Donut Browser 与 D0 的最终状态说明
-- [ ] CVSS / CWE / CVE ticket 统一校对
-- [ ] 交易哈希与 Solscan 链接最终核对
-- [ ] 截图编号与证据索引补齐
-- [ ] 删除所有仍可能直接复用的有效 Token、JWT、IP 和一键化 exploit 细节
-- [ ] 英文版同步改写
-
+*本报告基于 Ultimate Donut Bug Hunt 2.0 官方授权进行的安全研究。所有测试均未造成用户实际资金损失。已给予项目方超过 90 天修复窗口期（2026年3月至2026年6月）。*
