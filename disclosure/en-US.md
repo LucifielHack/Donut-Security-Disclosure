@@ -12,13 +12,14 @@ This placeholder is intentional. The original English working draft is not commi
 The final English disclosure should mirror the Chinese version and include:
 
 - scope and authorization background;
-- HIL / Donut Browser findings;
+- Donut Browser findings;
 - D0 / OpenClaw findings;
 - communication timeline;
 - evidence index;
 - CVE ticket mapping;
 - legal and ethical scope statement;
 - final retest status before the 2026-06-09 publication date.
+
 
 
 
