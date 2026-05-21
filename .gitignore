@@ -1,0 +1,42 @@
+﻿# Secrets and local credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.kdbx
+cookies*.txt
+*cookie*
+*token*
+*secret*
+
+# Raw exploit / internal working material
+poc/
+raw/
+private/
+secrets/
+working/
+internal/
+*.har
+*.pcap
+*.pcapng
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+
+# Large local evidence files; commit hashes/indexes instead
+*.mp4
+*.mov
+*.mkv
+*.avi
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
