@@ -1,4 +1,9 @@
-﻿# Donut Security Disclosure 2026
+﻿<p align="right">
+  <a href="../README.md">中文</a> |
+  <a href="./en-US.md"><strong>English</strong></a>
+</p>
+
+# Donut Security Disclosure 2026
 
 **Status:** English draft pending synchronization from `disclosure/zh-CN.md` after final Chinese review and the early-June retest.
 
@@ -14,3 +19,6 @@ The final English disclosure should mirror the Chinese version and include:
 - CVE ticket mapping;
 - legal and ethical scope statement;
 - final retest status before the 2026-06-09 publication date.
+
+
+
