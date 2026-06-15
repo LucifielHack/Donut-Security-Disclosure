@@ -56,7 +56,7 @@
 
 <a id="poc-video"></a>
 
-### 🎬 1-click 静默盗币 PoC 演示（脱敏 · 约 30 秒）
+### 🎬 1-click 静默盗币 PoC 演示（脱敏 · 约 79 秒）
 
 https://github.com/user-attachments/assets/ccc89bb3-dfba-4aeb-989f-fc51b5a9e06c
 
