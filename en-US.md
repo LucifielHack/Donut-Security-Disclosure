@@ -60,9 +60,9 @@
 
 ### 🎬 1-click silent fund-theft PoC demo (redacted · ~30s)
 
-<!-- To make the video play inline on this page: when editing en-US.md on the GitHub web editor, drag assets/poc-demo.mp4 onto the blank line below this comment; GitHub will upload it and generate an inline video player. Afterwards you may delete this comment and the "fallback link" line below. -->
+https://github.com/user-attachments/assets/ccc89bb3-dfba-4aeb-989f-fc51b5a9e06c
 
-▶️ Fallback link: [Watch the redacted PoC demo video](./assets/poc-demo.mp4) (opens an inline player on the file page in GitHub; also see the [embedded version on the blog](https://www.lucifiel.com/donut-disclosure/#poc-demo))
+> Also see the [embedded version on the blog](https://www.lucifiel.com/donut-disclosure/#poc-demo), or [view it on the file page](./assets/poc-demo.mp4).
 
 ---
 
