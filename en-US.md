@@ -7,6 +7,17 @@
 
 > This is the English version; the Chinese [README.md](./README.md) is the authoritative record. **English is not the author's native language, so this version may contain grammatical or semantic inaccuracies — in case of any discrepancy, the Chinese version prevails.** The Telegram and meeting records, and every verbatim quotation drawn from them, are kept in the original Chinese and are **not translated**; only the surrounding explanation is in English.
 
+<p align="center">
+  <a href="#tldr">One-minute summary</a> ·
+  <a href="./evidence/evidence.md">Evidence (49)</a> ·
+  <a href="./vulnerabilities/INDEX.md">Findings overview</a> ·
+  <a href="./evidence/meetings.md">Meetings</a> ·
+  <a href="./evidence/telegram.md">Telegram</a> ·
+  <a href="./evidence/chain.md">On-chain</a> ·
+  <a href="./evidence/cve.md">CVE</a> ·
+  <a href="https://www.lucifiel.com/donut-disclosure/">Full site (blog)</a>
+</p>
+
 ## Table of Contents
 
 > 👉 [**One-minute summary**](#tldr)
@@ -44,6 +55,14 @@
     - **Final response**: after the researcher sent the final notice, the vendor did not continue to engage on the substance, switched to a legal-posture reply, asserted a reservation of the right to pursue liability, **and made several false allegations** (all of which contradict the meeting and written records, rebutted point-by-point below; the original meeting audio and written records have been fully preserved and redaction-archived, and are open to institutional verification).
 - **Technical support**: the 数字循真 platform analysis framework (attack-chain modeling and risk assessment).
 - **This document**: a fully-redacted, zero-PoC, zero-reusable-weapon responsible-disclosure record.
+
+<a id="poc-video"></a>
+
+### 🎬 1-click silent fund-theft PoC demo (redacted · ~30s)
+
+<!-- To make the video play inline on this page: when editing en-US.md on the GitHub web editor, drag assets/poc-demo.mp4 onto the blank line below this comment; GitHub will upload it and generate an inline video player. Afterwards you may delete this comment and the "fallback link" line below. -->
+
+▶️ Fallback link: [Watch the redacted PoC demo video](./assets/poc-demo.mp4) (opens an inline player on the file page in GitHub; also see the [embedded version on the blog](https://www.lucifiel.com/donut-disclosure/#poc-demo))
 
 ---
 

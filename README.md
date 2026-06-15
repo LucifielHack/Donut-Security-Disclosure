@@ -5,6 +5,17 @@
 
 # Donut AI 漏洞披露
 
+<p align="center">
+  <a href="#tldr">一分钟速览</a> ·
+  <a href="./evidence/evidence.md">逐条证据（49）</a> ·
+  <a href="./vulnerabilities/INDEX.md">漏洞总览</a> ·
+  <a href="./evidence/meetings.md">三次会议</a> ·
+  <a href="./evidence/telegram.md">Telegram 记录</a> ·
+  <a href="./evidence/chain.md">链上交易</a> ·
+  <a href="./evidence/cve.md">CVE</a> ·
+  <a href="https://www.lucifiel.com/donut-disclosure/">博客完整版</a>
+</p>
+
 ## 目录
 
 > 👉 [**一分钟速览**](#tldr)
@@ -42,6 +53,14 @@
     - **最终回应**：研究员发出最终通知后，项目方未就诉求继续沟通，转以法务立场回复、声明保留追责权利，**并作出多条不实指控**（均与会议及书面记录不符，正文已逐条对照；会议原始语音与书面记录均已完整封存、脱敏收录，欢迎机构监督核实）。
 - **技术支持**：数字循真平台研判框架（攻击链建模与风险研判）。
 - **本文**：完整脱敏、零 PoC、零可复用武器的负责任披露记录。
+
+<a id="poc-video"></a>
+
+### 🎬 1-click 静默盗币 PoC 演示（脱敏 · 约 30 秒）
+
+<!-- 想让视频在本页内嵌“点击即播”：在 GitHub 网页编辑 README.md 时，把 assets/poc-demo.mp4 直接拖到本注释下方的空行处，GitHub 会自动上传并生成可内嵌播放的视频播放器；拖好后可删除本注释与下方“备用链接”一行。 -->
+
+▶️ 备用链接：[点击查看脱敏 PoC 演示视频](./assets/poc-demo.mp4)（在 GitHub 点开即在文件页播放；亦见[博客内嵌版](https://www.lucifiel.com/donut-disclosure/#poc-demo)）
 
 ---
 
