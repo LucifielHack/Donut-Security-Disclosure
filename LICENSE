@@ -1,0 +1,80 @@
+Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International
+Public License (CC BY-NC-ND 4.0)
+
+Copyright (c) 2026 Lucifiel (LucifielHack)
+
+Subject of this License
+-----------------------
+This license applies to the public disclosure documents in this repository,
+including (but not limited to):
+
+  - README.md / en-US.md
+  - All Markdown files under the evidence/ directory
+  - All Markdown files under the vulnerabilities/ directory (if any)
+  - Static media under the assets/ directory (if any)
+
+By exercising the Licensed Rights (defined below), You accept and agree to be
+bound by the terms and conditions of this Creative Commons Attribution-
+NonCommercial-NoDerivatives 4.0 International Public License ("Public License").
+
+Summary (informative — not a substitute for the License)
+--------------------------------------------------------
+
+You are free to:
+
+  - Share — copy and redistribute the material in any medium or format
+
+Under the following terms:
+
+  - Attribution — You must give appropriate credit to "Lucifiel
+    (LucifielHack) — Donut AI Vulnerability Disclosure", provide a link to
+    the original repository, and indicate if changes were made. You may do
+    so in any reasonable manner, but not in any way that suggests the
+    licensor endorses you or your use.
+
+  - NonCommercial — You may not use the material for commercial purposes.
+
+  - NoDerivatives — If you remix, transform, or build upon the material,
+    you may not distribute the modified material.
+
+  - No additional restrictions — You may not apply legal terms or
+    technological measures that legally restrict others from doing anything
+    the license permits.
+
+Notices:
+
+  - You do not have to comply with the license for elements of the material
+    in the public domain or where your use is permitted by an applicable
+    exception or limitation.
+
+  - No warranties are given. The license may not give you all of the
+    permissions necessary for your intended use. For example, other rights
+    such as publicity, privacy, or moral rights may limit how you use the
+    material.
+
+Full Legal Text
+---------------
+The full legal text of CC BY-NC-ND 4.0 is available at:
+
+    https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+This summary is provided for convenience and does not replace the full
+license text linked above. In case of any conflict, the full legal text
+prevails.
+
+Additional Notes
+----------------
+1. This repository documents vulnerability disclosure facts, communication
+   records, and user-facing risk advice. It is not an attack manual and
+   does not provide directly reusable exploit scripts, credentials, or
+   private keys.
+
+2. Quoting this disclosure for journalism, research, education, and
+   security community discussion is welcomed under the Attribution and
+   NonCommercial conditions above.
+
+3. For commercial reuse, derivative works, translations, or any usage
+   exceeding the scope of CC BY-NC-ND 4.0, please contact the author at:
+
+       lucifiel99@gmail.com
+       https://www.lucifiel.com/
