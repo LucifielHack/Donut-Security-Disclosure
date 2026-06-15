@@ -44,9 +44,7 @@
 - **谁**：独立安全研究员、数字循真创始人 Lucifiel，自 2025-12 起是 Donut 的用户与 beta 测试者。
 - **授权**：Donut 官方两届 Bug Hunt（2026-02 的 1.0、2026-03 的 2.0）及后续线上沟通框架内。
 - **发现**：Donut Browser 与 D0 两套系统共 **49 个问题**（Critical 10 / High 19 / Medium 16 / Low 4），核心两条：
-    - **① Donut Browser 自动签名盗币链**：后端在用户无签名确认下即可自动签名并广播交易，且可通过诱导点击远程触发（自有账户已实证，11 笔链上交易 Solscan 可查）；跨用户转账请求在平台侧可被构造放行，最终由第三方托管 Turnkey 拦截、未实际转走他人资金。🎬 [脱敏 
-https://github.com/user-attachments/assets/ccc89bb3-dfba-4aeb-989f-fc51b5a9e06c
- 演示视频](./assets/poc-demo.mp4)（GitHub 点开即播；亦见[博客内嵌版](https://www.lucifiel.com/donut-disclosure/#poc-demo)）
+    - **① Donut Browser 自动签名盗币链**：后端在用户无签名确认下即可自动签名并广播交易，且可通过诱导点击远程触发（自有账户已实证，11 笔链上交易 Solscan 可查）；跨用户转账请求在平台侧可被构造放行，最终由第三方托管 Turnkey 拦截、未实际转走他人资金。🎬 [脱敏 PoC 演示视频](./assets/poc-demo.mp4)（GitHub 点开即播；亦见[博客内嵌版](https://www.lucifiel.com/donut-disclosure/#poc-demo)）
     - **② D0 远程命令执行**：在研究员自有 Pod 内取得 RCE（已实证）。
 - **流程**：经三次线上会议 + 脱敏报告 + PPT + PoC 视频 + 书面通知告知厂商，给出超 90 天修复窗口，产品负责人当场确认披露流程。
 - **结果**（截至 2026-06 复测）：
@@ -60,9 +58,9 @@ https://github.com/user-attachments/assets/ccc89bb3-dfba-4aeb-989f-fc51b5a9e06c
 
 ### 🎬 1-click 静默盗币 PoC 演示（脱敏 · 约 30 秒）
 
-<!-- 想让视频在本页内嵌“点击即播”：在 GitHub 网页编辑 README.md 时，把 assets/poc-demo.mp4 直接拖到本注释下方的空行处，GitHub 会自动上传并生成可内嵌播放的视频播放器；拖好后可删除本注释与下方“备用链接”一行。 -->
+https://github.com/user-attachments/assets/ccc89bb3-dfba-4aeb-989f-fc51b5a9e06c
 
-▶️ 备用链接：[点击查看脱敏 PoC 演示视频](./assets/poc-demo.mp4)（在 GitHub 点开即在文件页播放；亦见[博客内嵌版](https://www.lucifiel.com/donut-disclosure/#poc-demo)）
+> 视频亦见[博客内嵌版](https://www.lucifiel.com/donut-disclosure/#poc-demo)，或在[文件页查看](./assets/poc-demo.mp4)。
 
 ---
 
