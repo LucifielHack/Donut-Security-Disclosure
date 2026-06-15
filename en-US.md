@@ -58,7 +58,7 @@
 
 <a id="poc-video"></a>
 
-### 🎬 1-click silent fund-theft PoC demo (redacted · ~30s)
+### 🎬 1-click silent fund-theft PoC demo (redacted · ~79s)
 
 https://github.com/user-attachments/assets/ccc89bb3-dfba-4aeb-989f-fc51b5a9e06c
 
